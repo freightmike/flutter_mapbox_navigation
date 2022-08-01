@@ -8,24 +8,19 @@ import 'package:flutter/widgets.dart';
 
 import 'models/models.dart';
 
-
 /// Turn-By-Turn Navigation Provider
 class MapBoxNavigation {
   factory MapBoxNavigation({ValueSetter<RouteEvent>? onRouteEvent}) {
     if (_instance == null) {
-      final MethodChannel methodChannel =
-      const MethodChannel('flutter_mapbox_navigation');
-      final EventChannel eventChannel =
-      const EventChannel('flutter_mapbox_navigation/events');
-      _instance =
-          MapBoxNavigation.private(methodChannel, eventChannel, onRouteEvent);
+      final MethodChannel methodChannel = const MethodChannel('flutter_mapbox_navigation');
+      final EventChannel eventChannel = const EventChannel('flutter_mapbox_navigation/events');
+      _instance = MapBoxNavigation.private(methodChannel, eventChannel, onRouteEvent);
     }
     return _instance!;
   }
 
   @visibleForTesting
-  MapBoxNavigation.private(
-      this._methodChannel, this._routeEventchannel, this._routeEventNotifier);
+  MapBoxNavigation.private(this._methodChannel, this._routeEventchannel, this._routeEventNotifier);
 
   static MapBoxNavigation? _instance;
 
@@ -37,19 +32,16 @@ class MapBoxNavigation {
   late StreamSubscription<RouteEvent> _routeEventSubscription;
 
   ///Current Device OS Version
-  Future<String> get platformVersion => _methodChannel
-      .invokeMethod('getPlatformVersion')
-      .then<String>((dynamic result) => result);
+  Future<String> get platformVersion =>
+      _methodChannel.invokeMethod('getPlatformVersion').then<String>((dynamic result) => result);
 
   ///Total distance remaining in meters along route.
-  Future<double?> get distanceRemaining => _methodChannel
-      .invokeMethod<double?>('getDistanceRemaining')
-      .then<double?>((dynamic result) => result);
+  Future<double?> get distanceRemaining =>
+      _methodChannel.invokeMethod<double?>('getDistanceRemaining').then<double?>((dynamic result) => result);
 
   ///Total seconds remaining on all legs.
-  Future<double?> get durationRemaining => _methodChannel
-      .invokeMethod<double?>('getDurationRemaining')
-      .then<double?>((dynamic result) => result);
+  Future<double?> get durationRemaining =>
+      _methodChannel.invokeMethod<double?>('getDurationRemaining').then<double?>((dynamic result) => result);
 
   ///Show the Navigation View and Begins Direction Routing
   ///
@@ -59,13 +51,11 @@ class MapBoxNavigation {
   ///
   int currentLegIndex = 0;
   int legsCount = 0;
-  Future startNavigation(
-      {required List<WayPoint> wayPoints,
-        required MapBoxOptions options}) async {
+  Future startNavigation({required List<WayPoint> wayPoints, required MapBoxOptions options}) async {
     assert(wayPoints.length > 1);
     if (Platform.isIOS && wayPoints.length > 3) {
       assert(options.mode != MapBoxNavigationMode.drivingWithTraffic,
-      "Error: Cannot use drivingWithTraffic Mode when you have more than 3 Stops");
+          "Error: Cannot use drivingWithTraffic Mode when you have more than 3 Stops");
     }
     List<Map<String, Object?>> pointList = [];
 
@@ -84,8 +74,7 @@ class MapBoxNavigation {
       pointList.add(pointMap);
     }
     var i = 0;
-    var wayPointMap =
-    Map.fromIterable(pointList, key: (e) => i++, value: (e) => e);
+    var wayPointMap = Map.fromIterable(pointList, key: (e) => i++, value: (e) => e);
 
     var args = options.toMap();
     args["wayPoints"] = wayPointMap;
@@ -94,9 +83,16 @@ class MapBoxNavigation {
     legsCount = wayPoints.length - 1;
 
     _routeEventSubscription = _streamRouteEvent!.listen(_onProgressData);
-    await _methodChannel
-        .invokeMethod('startNavigation', args)
-        .then<String>((dynamic result) => result);
+    await _methodChannel.invokeMethod('startNavigation', args).then<String>((dynamic result) => result);
+  }
+
+  Future startNavigationWithRoute({required List<List<double>> route, required MapBoxOptions options}) async {
+    var args = options.toMap();
+    args["route"] = route;
+
+    _routeEventSubscription =
+        _streamRouteEvent!.listen(_onProgressData); // TODO(mike): This is broken. Leg index is never mutated.
+    await _methodChannel.invokeMethod('startNavigationWithRoute', args).then<String>((dynamic result) => result);
   }
 
   ///Ends Navigation and Closes the Navigation View
@@ -107,8 +103,7 @@ class MapBoxNavigation {
 
   /// Will download the navigation engine and the user's region to allow offline routing
   Future<bool?> enableOfflineRouting() async {
-    var success =
-    await _methodChannel.invokeMethod('enableOfflineRouting', null);
+    var success = await _methodChannel.invokeMethod('enableOfflineRouting', null);
     return success;
   }
 
@@ -120,15 +115,12 @@ class MapBoxNavigation {
         _routeEventSubscription.cancel();
       else
         currentLegIndex++;
-    } else if (event.eventType == MapBoxEvent.navigation_finished)
-      _routeEventSubscription.cancel();
+    } else if (event.eventType == MapBoxEvent.navigation_finished) _routeEventSubscription.cancel();
   }
 
   Stream<RouteEvent>? get _streamRouteEvent {
     if (_onRouteEvent == null) {
-      _onRouteEvent = _routeEventchannel
-          .receiveBroadcastStream()
-          .map((dynamic event) => _parseRouteEvent(event));
+      _onRouteEvent = _routeEventchannel.receiveBroadcastStream().map((dynamic event) => _parseRouteEvent(event));
     }
     return _onRouteEvent;
   }
@@ -138,11 +130,9 @@ class MapBoxNavigation {
     var map = json.decode(jsonString);
     var progressEvent = RouteProgressEvent.fromJson(map);
     if (progressEvent.isProgressEvent!) {
-      event = RouteEvent(
-          eventType: MapBoxEvent.progress_change, data: progressEvent);
+      event = RouteEvent(eventType: MapBoxEvent.progress_change, data: progressEvent);
     } else
       event = RouteEvent.fromJson(map);
     return event;
   }
 }
-

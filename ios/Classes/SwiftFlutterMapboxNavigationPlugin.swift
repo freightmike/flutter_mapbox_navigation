@@ -40,6 +40,10 @@ public class SwiftFlutterMapboxNavigationPlugin: NavigationFactory, FlutterPlugi
         {
             startNavigation(arguments: arguments, result: result)
         }
+        else if(call.method == "startNavigationWithRoute")
+        {
+            startNavigationWithRoute(arguments: call.arguments as! [String: Any], result: result)
+        }
         else if(call.method == "finishNavigation")
         {
             endNavigation(result: result)
